@@ -1,16 +1,22 @@
 require("dotenv").config();
 const express = require("express");
-const bp = require("body-parser");
+// const bp = require("body-parser");
 const app = express();
-const path = require("path");
+// const path = require("path");
 const crypto = require("crypto");
 const db = require("better-sqlite3")("testus.db");
-const fs = require("fs");
+// const fs = require("fs");
 
 const pepper = process.env.PEPPER;
 
-app.use(bp.json());
-app.use(bp.urlencoded({extended: true}));
+// app.use(express.limit('5mb'));
+app.use(express.json({
+    limit: 5 * 1024 * 1024
+}));
+app.use(express.urlencoded({
+    extended: true,
+    limit: 5 * 1024 * 1024
+}));
 
 function genString(len = 30) {
     let string = "";
@@ -65,8 +71,7 @@ app.post("/register", (req, res) => {
             const { ime, prezime, password, email } = req.body;
             const salt = genString();
             const hash = crypto.createHash("sha512").update(pepper + password + salt).digest("base64");
-            const { lastInsertRowid } = db.prepare(`INSERT INTO Korisnici(ime, prezime, email, hash, salt) VALUES ('${ime}', '${prezime}', '${email}', '${hash}', '${salt}')`).run();
-            fs.copyFileSync(path.join(__dirname, "img", "default.jpg"), path.join(__dirname, "img", `${lastInsertRowid}.jpg`));
+            db.prepare(`INSERT INTO Korisnici(ime, prezime, email, hash, salt) VALUES ('${ime}', '${prezime}', '${email}', '${hash}', '${salt}')`).run();
             res.sendStatus(200);
         } catch(e) {
             if (e.code === "SQLITE_CONSTRAINT_UNIQUE") {
@@ -97,11 +102,22 @@ app.post("/api/zadaci", (req, res) => {
 });
 
 app.get("/user/img/:id", (req, res) => {
-    res.sendFile(path.join(__dirname, "img", `${req.params.id}.jpg`));
+    // res.sendFile(path.join(__dirname, "img", `${req.params.id}.jpg`));
+    try {
+        res.send(db.prepare(`SELECT avatar FROM Korisnici WHERE id = ${parseInt(req.params.id)}`).get().avatar);
+    } catch (e) {
+        res.sendStatus(404);
+        console.error(e);
+    }
 });
 app.post("/user/img/:id", (req, res) => {
-    console.log(req.headers, req.body);
-    res.send("OK");
+    const { avatar } = req.body;
+    if (avatar) {
+        db.prepare(`UPDATE Korisnici SET avatar='${avatar}' WHERE id=${parseInt(req.params.id)}`).run();
+        res.sendStatus(200);
+    } else {
+        res.sendStatus(400);
+    }
 });
 
 app.listen(8000, () => {
