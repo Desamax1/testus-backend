@@ -100,7 +100,7 @@ app.get("/user/img/:id", (req, res) => {
     res.sendFile(path.join(__dirname, "img", `${req.params.id}.jpg`));
 });
 app.post("/user/img/:id", (req, res) => {
-    console.log(req.body);
+    console.log(req.headers);
     res.send("OK");
 });
 
