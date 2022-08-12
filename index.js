@@ -96,11 +96,12 @@ app.post("/api/zadaci", (req, res) => {
     res.sendStatus(200);
 });
 
-app.get("/img/user/:id", (req, res) => {
+app.get("/user/img/:id", (req, res) => {
     res.sendFile(path.join(__dirname, "img", `${req.params.id}.jpg`));
 });
-app.post("/img/user/:id.jpg", (req, res) => {
-    
+app.post("/user/img/:id", (req, res) => {
+    console.log(req.body);
+    res.send("OK");
 });
 
 app.listen(8000, () => {
