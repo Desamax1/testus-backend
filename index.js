@@ -1,11 +1,8 @@
 require("dotenv").config();
 const express = require("express");
-// const bp = require("body-parser");
 const app = express();
-// const path = require("path");
 const crypto = require("crypto");
 const db = require("better-sqlite3")("testus.db");
-// const fs = require("fs");
 
 const pepper = process.env.PEPPER;
 
