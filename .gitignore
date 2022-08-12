@@ -130,6 +130,4 @@ dist
 .pnp.*
 
 # testus-specific
-img/*
-!img/default.jpg
 testus.db
