@@ -3,8 +3,9 @@ const express = require("express");
 const app = express();
 const crypto = require("crypto");
 const db = require("better-sqlite3")("testus.db");
-
+const path = require("path");
 const pepper = process.env.PEPPER;
+const fs = require("fs");
 
 // app.use(express.limit('5mb'));
 app.use(express.json({
@@ -99,18 +100,23 @@ app.post("/api/zadaci", (req, res) => {
 });
 
 app.get("/user/img/:id", (req, res) => {
-    // res.sendFile(path.join(__dirname, "img", `${req.params.id}.jpg`));
     try {
-        res.send(db.prepare(`SELECT avatar FROM Korisnici WHERE id = ${parseInt(req.params.id)}`).get().avatar);
+        res.setHeader("content-type", "image/webp");
+        if (fs.existsSync(path.join(__dirname, "img", req.params.id))) {
+            res.sendFile(path.join(__dirname, "img", `${req.params.id}`));
+        } else {
+            res.sendFile(path.join(__dirname, "img", "default"));
+        }
     } catch (e) {
         res.sendStatus(404);
         console.error(e);
     }
 });
 app.post("/user/img/:id", (req, res) => {
+    // TODO: dodati auth da ne bi bilo ko mogao da promeni avatara
     const { avatar } = req.body;
     if (avatar) {
-        db.prepare(`UPDATE Korisnici SET avatar='${avatar}' WHERE id=${parseInt(req.params.id)}`).run();
+        fs.writeFileSync(path.join(__dirname, "img", req.params.id), avatar, "base64");
         res.sendStatus(200);
     } else {
         res.sendStatus(400);
