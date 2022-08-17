@@ -4,17 +4,12 @@ const app = express();
 const crypto = require("crypto");
 const db = require("better-sqlite3")("testus.db");
 const path = require("path");
-const pepper = process.env.PEPPER;
 const fs = require("fs");
 
-// app.use(express.limit('5mb'));
-app.use(express.json({
-    limit: 5 * 1024 * 1024
-}));
-app.use(express.urlencoded({
-    extended: true,
-    limit: 5 * 1024 * 1024
-}));
+const pepper = process.env.PEPPER;
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 function genString(len = 30) {
     let string = "";
@@ -93,8 +88,8 @@ app.get("/user/info/:id", (req, res) => {
     res.json(r);
 });
 
-app.post("/api/zadaci", (req, res) => {
-    const { oblast, broj, tezina } = req.body;
+app.get("/api/zadaci", (req, res) => {
+    const { oblast, broj, tezina } = req.query;
     
     res.sendStatus(200);
 });
@@ -103,7 +98,7 @@ app.get("/user/img/:id", (req, res) => {
     try {
         res.setHeader("content-type", "image/webp");
         if (fs.existsSync(path.join(__dirname, "img", req.params.id))) {
-            res.sendFile(path.join(__dirname, "img", `${req.params.id}`));
+            res.sendFile(path.join(__dirname, "img", req.params.id));
         } else {
             res.sendFile(path.join(__dirname, "img", "default"));
         }
