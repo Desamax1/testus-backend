@@ -5,6 +5,8 @@ const crypto = require("crypto");
 const db = require("better-sqlite3")("testus.db");
 const path = require("path");
 const fs = require("fs");
+const { error } = require("console");
+const { rejects } = require("assert");
 
 const pepper = process.env.PEPPER;
 
@@ -88,10 +90,82 @@ app.get("/user/info/:id", (req, res) => {
     res.json(r);
 });
 
-app.get("/api/zadaci", (req, res) => {
-    const { oblast, broj, tezina } = req.query;
-    
-    res.sendStatus(200);
+function generateTest(oblast, broj, tezina) {
+    const tests = [];
+    for (let i = 0; i < oblast.length; i++) {
+        const tests = db.prepare(`SELECT tekst, resenje FROM Zadaci WHERE idPodoblast = ${oblast[i]} AND tezina = ${tezina[i]} ORDER BY random() LIMIT ${broj[i]};`).all();
+        if (tests) {
+            for (const test of tests) {
+                tests.push(test);
+            }
+        } else {
+            throw "The requested oblast couldn't be found in the DB!";
+        }
+    }
+    return tests;
+}
+
+function generateTest(oblast, broj, tezina, uid = null, pid = null) {
+    // generisi listu u kojoj se nalaze zadaci koji ce biti na testu
+    let testCount = 0;
+    let s = "";
+    for (let i = 0; i < oblast.length; i++) {
+        const testsDb = db.prepare(`SELECT id, tekst, resenje FROM Zadaci WHERE idPodoblast = ${oblast[i]} AND tezina = ${tezina[i]} ORDER BY random() LIMIT ${broj[i]};`).all();
+        if (testsDb.length > 0) {
+            for (let j = 0; j < testsDb.length; j++) {
+                testCount++;
+                s += testsDb[j].tekst;
+                if (j !== testsDb.length - 1) {
+                    s += ';';
+                }
+            }
+        } else {
+            throw "Nema zadataka koji odgovaraju zadatom kriterijumu!";
+        }
+    }
+    // u bazu upisi zadatke sa te liste - kreiraj test
+    const { lastInsertRowid } = db.prepare(`INSERT INTO Testovi(zadCount,zadaci,idUcenika,idProfesora) VALUES (${testCount}, '${s}', ${uid}, ${pid});`).run();
+    // vrati id tog testa
+    return lastInsertRowid;
+}
+
+app.post("/test/", (req,res) => {
+    let {oblast, broj, tezina} = req.query;
+    if (typeof oblast === "string") {
+        oblast = [oblast];
+    }
+    if (typeof broj === "string") {
+        broj = [broj];
+    }
+    if (typeof tezina === "string") {
+        tezina = [tezina];
+    }
+    if (oblast.length !== broj.length || oblast.length !== tezina.length || broj.length !== tezina.length) {
+        res.sendStatus(400);
+        return;
+    }
+
+    try {
+        const zadaci = generateTest(oblast, broj, tezina);
+        res.status(201).json(zadaci);
+    } catch (e) {
+        res.sendStatus(404);
+        console.error(e);
+    }
+});
+
+app.get("/test/", (req, res) => {
+    try {
+        const test = db.prepare(`SELECT zadCount, zadaci FROM Testovi WHERE id=${req.query.testId}`).get();
+        if (test) {
+            res.json(test);
+        } else {
+            res.sendStatus(404);
+        }
+    } catch (e) {
+        res.sendStatus(400);
+        console.error(e);
+    }
 });
 
 app.get("/user/img/:id", (req, res) => {
