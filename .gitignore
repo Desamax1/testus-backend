@@ -132,5 +132,5 @@ dist
 # testus-specific
 testus.db
 testus.db.old
-img/
+img/*
 !img/default
