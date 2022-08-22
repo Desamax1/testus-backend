@@ -90,21 +90,6 @@ app.get("/user/info/:id", (req, res) => {
     res.json(r);
 });
 
-function generateTest(oblast, broj, tezina) {
-    const tests = [];
-    for (let i = 0; i < oblast.length; i++) {
-        const tests = db.prepare(`SELECT tekst, resenje FROM Zadaci WHERE idPodoblast = ${oblast[i]} AND tezina = ${tezina[i]} ORDER BY random() LIMIT ${broj[i]};`).all();
-        if (tests) {
-            for (const test of tests) {
-                tests.push(test);
-            }
-        } else {
-            throw "The requested oblast couldn't be found in the DB!";
-        }
-    }
-    return tests;
-}
-
 function generateTest(oblast, broj, tezina, uid = null, pid = null) {
     // generisi listu u kojoj se nalaze zadaci koji ce biti na testu
     let testCount = 0;
