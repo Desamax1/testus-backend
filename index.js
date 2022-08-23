@@ -28,6 +28,10 @@ function genString(len = 30) {
     return string;
 }
 
+app.get("/login/:connString", (req, res) => {
+    const { connString } = req.params;
+    
+});
 app.post("/login", (req, res) => {
     try {
         if (req.body && req.body.email && req.body.password) {
@@ -116,7 +120,7 @@ function generateTest(oblast, broj, tezina, uid = null, pid = null) {
     let testCount = 0;
     let s = "";
     for (let i = 0; i < oblast.length; i++) {
-        const testsDb = db.prepare(`SELECT id, tekst, resenje FROM Zadaci WHERE idPodoblast = ${oblast[i]} AND tezina = ${tezina[i]} ORDER BY random() LIMIT ${broj[i]};`).all();
+        const testsDb = db.prepare(`SELECT id, tekst, resenje FROM Zadaci WHERE idPodoblast = (SELECT id FROM Oblasti WHERE oblast = '${oblast[i]}') AND tezina = ${tezina[i]} ORDER BY random() LIMIT ${broj[i]}`).all();
         if (testsDb.length > 0) {
             for (let j = 0; j < testsDb.length; j++) {
                 testCount++;
@@ -171,9 +175,9 @@ app.get("/test/", (req, res) => {
         console.error(e);
     }
 });
-app.get("/oblasti", (req, res) => {
-    const { podoblast } = req.query;
-    if (podoblast === undefined) {
+app.get("/oblasti/:podoblast", (req, res) => {
+    const { podoblast } = req.params;
+    if (podoblast === "all") {
         // vrati oblasti
         try {
             const po = db.prepare(`SELECT oblast FROM Oblasti WHERE podoblast IS NULL`).all();
@@ -185,7 +189,7 @@ app.get("/oblasti", (req, res) => {
     } else {
         // vrati podoblast
         try {
-            const po = db.prepare(`SELECT oblast FROM Oblasti WHERE podoblast = ${podoblast}`).all();
+            const po = db.prepare(`SELECT oblast FROM Oblasti WHERE podoblast = (SELECT id FROM Oblasti WHERE oblast = '${podoblast}')`).all();
             res.json(po);
         } catch (e) {
             res.sendStatus(400);
