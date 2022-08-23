@@ -59,7 +59,6 @@ app.post("/login", (req, res) => {
         console.error(e);
     }
 });
-
 app.post("/register", (req, res) => {
     if (req.body && req.body.password && req.body.email && req.body.ime && req.body.prezime) {
         try {
@@ -80,7 +79,6 @@ app.post("/register", (req, res) => {
         res.sendStatus(400);
     }
 });
-
 app.get("/user/info/:id", (req, res) => {
     const r = db.prepare(`SELECT ime, prezime FROM Korisnici WHERE id=${req.params.id}`).get();
     if (!r) {
@@ -88,6 +86,29 @@ app.get("/user/info/:id", (req, res) => {
         return;
     }
     res.json(r);
+});
+app.get("/user/img/:id", (req, res) => {
+    try {
+        res.setHeader("content-type", "image/webp");
+        if (fs.existsSync(path.join(__dirname, "img", req.params.id))) {
+            res.sendFile(path.join(__dirname, "img", req.params.id));
+        } else {
+            res.sendFile(path.join(__dirname, "img", "default"));
+        }
+    } catch (e) {
+        res.sendStatus(404);
+        console.error(e);
+    }
+});
+app.post("/user/img/:id", (req, res) => {
+    // TODO: dodati auth da ne bi bilo ko mogao da promeni avatara
+    const { avatar } = req.body;
+    if (avatar) {
+        fs.writeFileSync(path.join(__dirname, "img", req.params.id), avatar, "base64");
+        res.sendStatus(200);
+    } else {
+        res.sendStatus(400);
+    }
 });
 
 function generateTest(oblast, broj, tezina, uid = null, pid = null) {
@@ -113,7 +134,6 @@ function generateTest(oblast, broj, tezina, uid = null, pid = null) {
     // vrati id tog testa
     return lastInsertRowid;
 }
-
 app.post("/test/", (req,res) => {
     let {oblast, broj, tezina} = req.query;
     if (typeof oblast === "string") {
@@ -138,7 +158,6 @@ app.post("/test/", (req,res) => {
         console.error(e);
     }
 });
-
 app.get("/test/", (req, res) => {
     try {
         const test = db.prepare(`SELECT zadCount, zadaci FROM Testovi WHERE id=${req.query.testId}`).get();
@@ -152,28 +171,26 @@ app.get("/test/", (req, res) => {
         console.error(e);
     }
 });
-
-app.get("/user/img/:id", (req, res) => {
-    try {
-        res.setHeader("content-type", "image/webp");
-        if (fs.existsSync(path.join(__dirname, "img", req.params.id))) {
-            res.sendFile(path.join(__dirname, "img", req.params.id));
-        } else {
-            res.sendFile(path.join(__dirname, "img", "default"));
+app.get("/oblasti", (req, res) => {
+    const { podoblast } = req.query;
+    if (podoblast === undefined) {
+        // vrati oblasti
+        try {
+            const po = db.prepare(`SELECT oblast FROM Oblasti WHERE podoblast IS NULL`).all();
+            res.json(po);
+        } catch (e) {
+            res.sendStatus(400);
+            console.error(e);
         }
-    } catch (e) {
-        res.sendStatus(404);
-        console.error(e);
-    }
-});
-app.post("/user/img/:id", (req, res) => {
-    // TODO: dodati auth da ne bi bilo ko mogao da promeni avatara
-    const { avatar } = req.body;
-    if (avatar) {
-        fs.writeFileSync(path.join(__dirname, "img", req.params.id), avatar, "base64");
-        res.sendStatus(200);
     } else {
-        res.sendStatus(400);
+        // vrati podoblast
+        try {
+            const po = db.prepare(`SELECT oblast FROM Oblasti WHERE podoblast = ${podoblast}`).all();
+            res.json(po);
+        } catch (e) {
+            res.sendStatus(400);
+            console.error(e);
+        }
     }
 });
 
