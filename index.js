@@ -30,12 +30,20 @@ function genString(len = 30) {
 
 app.get("/login/:connString", (req, res) => {
     const { connString } = req.params;
-    
+    const { uid } = db.prepare(`SELECT uid FROM LoginStringovi WHERE string = '${connString}';`).get();
+    if (uid) {
+        res.json({
+            id: uid
+        });
+    } else {
+        res.sendStatus(401);
+    }
 });
 app.post("/login", (req, res) => {
     try {
         if (req.body && req.body.email && req.body.password) {
             const { email, password } = req.body;
+            const { remember } = req.query;
             const r = db.prepare(`SELECT salt, hash FROM Korisnici WHERE email='${email}'`).get();
             if (!r) {
                 res.sendStatus(404);
@@ -50,7 +58,23 @@ app.post("/login", (req, res) => {
             if (crypto.createHash("sha512").update(userPw).digest("base64") === hash) {
                 // auth success
                 const { id } = db.prepare(`SELECT id FROM Korisnici WHERE email='${email}'`).get();
-                res.send(`${id}`);
+                // check if the user wished to be remembered before sending out response
+                if (remember && remember === "true") {
+                    // the user wishes to be remembered
+                    // create login string, store it in DB, and send it too back to the user
+                    const randomString = genString(20);
+                    const hashedString = crypto.createHash("sha256").update(randomString).digest("base64");
+                    db.prepare(`INSERT INTO LoginStringovi(string, uid) VALUES ('${hashedString}', ${id})`).run();
+                    res.json({
+                        id: id,
+                        loginString: hashedString
+                    });
+                    return;
+                } else {
+                    res.json({
+                        id: id
+                    });
+                }
             } else {
                 // wrong pw or email
                 res.sendStatus(401);
